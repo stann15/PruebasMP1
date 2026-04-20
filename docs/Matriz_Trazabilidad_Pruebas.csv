@@ -1,0 +1,18 @@
+ID;ClaseMetodo;Tipo;RequisitosCubiertos;ResultadoEsperado;ResultadoEjecucion
+CP-01;ValidacionesTest.validaCamposObligatoriosYRangos;Unitaria caja negra;Campos obligatorios rangos habilidades equipo;Rechazo de nombres vacios y valores fuera de rango;OK
+CP-02;ValidacionesTest.jugadorValidaPasswordYRegistro;Unitaria;Usuarios password numero de registro;Password corta rechazada y registro conservado;OK
+CP-03;ValidacionesTest.oroNuncaPuedeSerNegativo;Unitaria;Oro no negativo;Saldo negativo rechazado;OK
+CP-04;PersonajeEquipoEsbirrosTest.equipaDosArmasDeUnaManoYRechazaDosManosCombinada;Unitaria;Equipo activo armas una mano dos manos;Configuracion valida aceptada e invalida rechazada;OK
+CP-05;PersonajeEquipoEsbirrosTest.decoradoresDeEquipoSumanAtaqueYDefensa;Unitaria caja blanca;Decoradores de equipo;Ataque y defensa calculados con extras;OK
+CP-06;PersonajeEquipoEsbirrosTest.esbirrosAbsorbenDanioAntesQueElPersonajeYSeRestauran;Unitaria;Esbirros dano restauracion;Esbirros absorben dano y se restauran;OK
+CP-07;PersonajeEquipoEsbirrosTest.vampiroRechazaHumanosYCalculaModificadoresSinDistinguirMayusculas;Unitaria;Vampiros esbirros modificadores;Humano rechazado y modificadores aplicados;OK
+CP-08;DesafioEstadoTest.controlaTransicionesLegalesEInvalidas;Unitaria caja blanca;Estados de desafio;Solo transiciones validas;OK
+CP-09;DesafioEstadoTest.calculaPenalizacionYRechazoAdministrativo;Unitaria;Rechazo penalizacion administracion;Penalizacion 10 por ciento y rechazo cerrado;OK
+CP-10;RankingTest.ordenaPorOroVictoriasYNickYCalculaDerrotas;Unitaria;Ranking global victorias derrotas;Orden y estadisticas correctas;OK
+CP-11;CombateTest.combateGeneraRondasEventosYResultadoCoherente;Integracion dominio;Combate rondas eventos oro;Resultado coherente;OK
+CP-12;SistemaFacadeFlujosTest.registraAutenticaYControlaRoles;Integracion;Registro login roles permisos;Acceso correcto y operaciones protegidas;OK
+CP-13;SistemaFacadeFlujosTest.desafioValidadoBloqueaAccionesYRechazoPenaliza;Integracion;Desafio pendiente rechazo oro notificaciones;Bloqueo de acciones penalizacion y notificacion;OK
+CP-14;SistemaFacadeFlujosTest.validacionAplicaReglaDe24HorasYBloqueaDesafiante;Integracion;Regla 24 horas bloqueo;Desafiante bloqueado y desafio rechazado;OK
+CP-15;SistemaFacadeFlujosTest.validaApuestaEquipoYPersistenciaBasica;Integracion;Apuestas desafio simultaneo persistencia;Entradas invalidas rechazadas y ficheros generados;OK
+REG-01;VerificationRunner fresh;Regresion funcional;Flujo completo;Checks funcionales correctos;OK
+REG-02;VerificationRunner persistence-check;Regresion funcional;Persistencia;Datos recuperados;OK
