@@ -1,5 +1,7 @@
 package es.urjc.metprog.gui;
 
+import es.urjc.metprog.domain.character.TipoPersonaje;
+
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
@@ -10,13 +12,15 @@ import javax.swing.JList;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSpinner;
+import javax.swing.JTabbedPane;
 import javax.swing.JTable;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
-import javax.swing.ListCellRenderer;
 import javax.swing.ListSelectionModel;
+import javax.swing.SwingConstants;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SwingUtilities;
 import javax.swing.ToolTipManager;
@@ -24,6 +28,8 @@ import javax.swing.UIManager;
 import javax.swing.border.AbstractBorder;
 import javax.swing.plaf.basic.BasicButtonUI;
 import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
@@ -45,6 +51,7 @@ import java.awt.Insets;
 import java.awt.LayoutManager;
 import java.awt.LinearGradientPaint;
 import java.awt.Paint;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Window;
 import java.awt.geom.RoundRectangle2D;
@@ -65,6 +72,9 @@ final class Ui {
     static final Color GREEN = new Color(99, 222, 135);
     static final Color BLUE = new Color(95, 154, 255);
     static final Color VIOLET = new Color(166, 105, 255);
+    static final Color VAMPIRE = new Color(232, 72, 101);
+    static final Color WOLF = new Color(255, 176, 77);
+    static final Color HUNTER = new Color(73, 221, 216);
 
     private Ui() {
     }
@@ -120,6 +130,9 @@ final class Ui {
         UIManager.put("TabbedPane.contentAreaColor", new Color(40, 52, 82));
         UIManager.put("TabbedPane.tabAreaBackground", BG_2);
         UIManager.put("TabbedPane.focus", TEAL);
+        UIManager.put("TabbedPane.darkShadow", BG);
+        UIManager.put("TabbedPane.light", BG_2);
+        UIManager.put("TabbedPane.highlight", TEAL);
         UIManager.put("CheckBox.background", PANEL);
         UIManager.put("CheckBox.foreground", TEXT);
     }
@@ -143,6 +156,27 @@ final class Ui {
         label.setFont(label.getFont().deriveFont(Font.BOLD, size));
         label.setForeground(TEXT);
         return label;
+    }
+
+    static String typeText(TipoPersonaje type) {
+        return switch (type) {
+            case VAMPIRO -> "Vampiro";
+            case LICANTROPO -> "Licantropo";
+            case CAZADOR -> "Cazador";
+        };
+    }
+
+    static Color accentForType(TipoPersonaje type) {
+        return switch (type) {
+            case VAMPIRO -> VAMPIRE;
+            case LICANTROPO -> WOLF;
+            case CAZADOR -> HUNTER;
+        };
+    }
+
+    static Color softAccentForType(TipoPersonaje type) {
+        Color base = accentForType(type);
+        return new Color(base.getRed(), base.getGreen(), base.getBlue(), 72);
     }
 
     static JTextField textField() {
@@ -229,6 +263,15 @@ final class Ui {
         return button(text, TEAL, GREEN, new Color(4, 22, 24));
     }
 
+    static JButton ghostButton(String text) {
+        JButton button = new GlowButton(text, new Color(21, 26, 41), new Color(28, 34, 54), TEXT);
+        button.setFocusPainted(false);
+        button.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        button.setFont(button.getFont().deriveFont(Font.BOLD, 13f));
+        button.setMargin(new Insets(8, 12, 8, 12));
+        return button;
+    }
+
     static JButton button(String text, Color start, Color end, Color fg) {
         JButton button = new GlowButton(text, start, end, fg);
         button.setFocusPainted(false);
@@ -258,14 +301,71 @@ final class Ui {
         return panel;
     }
 
+    static JTabbedPane tabbedPane() {
+        JTabbedPane tabs = new JTabbedPane();
+        tabs.setBackground(PANEL);
+        tabs.setForeground(TEXT);
+        tabs.setOpaque(false);
+        tabs.setFocusable(false);
+        tabs.setUI(tabbedPaneUi());
+        return tabs;
+    }
+
+    static BasicTabbedPaneUI tabbedPaneUi() {
+        return new BasicTabbedPaneUI() {
+            @Override
+            protected void installDefaults() {
+                super.installDefaults();
+                shadow = BG;
+                darkShadow = BG;
+                lightHighlight = TEAL;
+                focus = TEAL;
+                tabInsets = new Insets(10, 18, 10, 18);
+                selectedTabPadInsets = new Insets(1, 1, 1, 1);
+                tabAreaInsets = new Insets(6, 0, 8, 0);
+                contentBorderInsets = new Insets(0, 0, 0, 0);
+            }
+
+            @Override
+            protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                GradientPaint paint = isSelected
+                        ? new GradientPaint(x, y, new Color(55, 81, 140), x + w, y + h, new Color(34, 54, 105))
+                        : new GradientPaint(x, y, new Color(18, 23, 38), x + w, y + h, new Color(25, 31, 49));
+                g2.setPaint(paint);
+                g2.fillRoundRect(x + 1, y + 1, w - 2, h - 2, 14, 14);
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintTabBorder(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setColor(isSelected ? GOLD : new Color(83, 97, 132));
+                g2.setStroke(new BasicStroke(isSelected ? 1.8f : 1.0f));
+                g2.drawRoundRect(x + 1, y + 1, w - 3, h - 3, 14, 14);
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
+            }
+
+            @Override
+            protected void paintFocusIndicator(Graphics g, int tabPlacement, Rectangle[] rects, int tabIndex, Rectangle iconRect, Rectangle textRect, boolean isSelected) {
+            }
+        };
+    }
+
     static JPanel card() {
-        SurfacePanel panel = new SurfacePanel(new BorderLayout(12, 12), new Color(18, 23, 38, 238), new Color(33, 41, 65, 238));
-        panel.setBorder(BorderFactory.createCompoundBorder(new GlowBorder(new Color(82, 96, 134), new Color(255, 194, 85, 185), 13), BorderFactory.createEmptyBorder(18, 18, 18, 18)));
+        SurfacePanel panel = new SurfacePanel(new BorderLayout(12, 12), new Color(14, 19, 32, 242), new Color(33, 42, 68, 242));
+        panel.setBorder(BorderFactory.createCompoundBorder(new GlowBorder(new Color(88, 103, 143), new Color(255, 194, 85, 185), 16), BorderFactory.createEmptyBorder(20, 20, 20, 20)));
         return panel;
     }
 
     static JPanel dialogPanel(LayoutManager layout) {
-        SurfacePanel panel = new SurfacePanel(layout, new Color(9, 13, 25), new Color(24, 31, 52));
+        SurfacePanel panel = new SurfacePanel(layout, new Color(8, 12, 24), new Color(24, 31, 52));
         panel.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
         return panel;
     }
@@ -343,10 +443,12 @@ final class Ui {
 
     static JScrollPane scroll(Component component) {
         JScrollPane scroll = new JScrollPane(component);
-        scroll.setBorder(new GlowBorder(new Color(68, 80, 115), TEAL, 10));
+        scroll.setBorder(new GlowBorder(new Color(68, 80, 115), TEAL, 12));
         scroll.getViewport().setBackground(INPUT);
         scroll.getViewport().setOpaque(true);
         scroll.setOpaque(false);
+        styleScrollBar(scroll.getVerticalScrollBar());
+        styleScrollBar(scroll.getHorizontalScrollBar());
         return scroll;
     }
 
@@ -362,7 +464,7 @@ final class Ui {
     static JTable table(DefaultTableModel model) {
         JTable table = new JTable(model);
         table.setFillsViewportHeight(true);
-        table.setRowHeight(36);
+        table.setRowHeight(40);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         table.setShowHorizontalLines(false);
         table.setShowVerticalLines(false);
@@ -384,7 +486,7 @@ final class Ui {
             }
         });
         JTableHeader header = table.getTableHeader();
-        header.setBackground(new Color(32, 40, 64));
+        header.setBackground(new Color(24, 33, 58));
         header.setForeground(GOLD);
         header.setFont(header.getFont().deriveFont(Font.BOLD, 13f));
         header.setBorder(BorderFactory.createEmptyBorder());
@@ -396,12 +498,19 @@ final class Ui {
         list.setForeground(TEXT);
         list.setSelectionBackground(new Color(55, 73, 116));
         list.setSelectionForeground(TEXT);
-        list.setFixedCellHeight(32);
+        list.setFixedCellHeight(36);
+        list.setBorder(BorderFactory.createEmptyBorder(6, 6, 6, 6));
     }
 
     static JPanel titled(String title, JComponent body) {
         JPanel panel = card();
-        panel.add(title(title, 18f), BorderLayout.NORTH);
+        JPanel heading = transparent(new BorderLayout(0, 6));
+        heading.add(title(title, 18f), BorderLayout.NORTH);
+        JPanel underline = new JPanel();
+        underline.setOpaque(false);
+        underline.setPreferredSize(new Dimension(1, 8));
+        heading.add(underline, BorderLayout.SOUTH);
+        panel.add(heading, BorderLayout.NORTH);
         panel.add(body, BorderLayout.CENTER);
         return panel;
     }
@@ -503,14 +612,15 @@ final class Ui {
                 return button;
             }
         });
-        combo.setBorder(BorderFactory.createCompoundBorder(new GlowBorder(LINE, TEAL, 9), BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+        combo.setBorder(BorderFactory.createCompoundBorder(new GlowBorder(LINE, TEAL, 9), BorderFactory.createEmptyBorder(6, 10, 6, 10)));
         combo.setRenderer((list, value, index, selected, focus) -> {
             JLabel label = new JLabel(comboText(value));
             label.setOpaque(true);
-            label.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
+            label.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
             label.setBackground(selected ? new Color(55, 73, 116) : INPUT);
-            label.setForeground(index < 0 ? GOLD : TEXT);
-            label.setFont(label.getFont().deriveFont(index < 0 ? Font.BOLD : Font.PLAIN, 14f));
+            label.setForeground(index < 0 ? TEXT : TEXT);
+            label.setVerticalAlignment(SwingConstants.CENTER);
+            label.setFont(label.getFont().deriveFont(index < 0 ? Font.BOLD : Font.PLAIN, 13f));
             return label;
         });
     }
@@ -519,11 +629,67 @@ final class Ui {
         if (value == null) {
             return "";
         }
+        if (value instanceof TipoPersonaje type) {
+            return typeText(type);
+        }
         if (value instanceof Enum<?> enumValue) {
             String text = enumValue.name().replace('_', ' ').toLowerCase();
             return text.isBlank() ? "" : Character.toUpperCase(text.charAt(0)) + text.substring(1);
         }
         return value.toString();
+    }
+
+    private static void styleScrollBar(JScrollBar bar) {
+        if (bar == null) {
+            return;
+        }
+        bar.setOpaque(false);
+        bar.setUnitIncrement(16);
+        bar.setUI(new BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                thumbColor = new Color(74, 91, 138);
+                trackColor = new Color(10, 13, 24);
+            }
+
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return zeroButton();
+            }
+
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return zeroButton();
+            }
+
+            @Override
+            protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(new Color(8, 12, 22));
+                g2.fillRoundRect(trackBounds.x + 2, trackBounds.y + 2, Math.max(4, trackBounds.width - 4), Math.max(4, trackBounds.height - 4), 10, 10);
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
+                if (thumbBounds.width <= 0 || thumbBounds.height <= 0) {
+                    return;
+                }
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setPaint(new GradientPaint(thumbBounds.x, thumbBounds.y, BLUE, thumbBounds.x + thumbBounds.width, thumbBounds.y + thumbBounds.height, VIOLET));
+                g2.fillRoundRect(thumbBounds.x + 2, thumbBounds.y + 2, Math.max(4, thumbBounds.width - 4), Math.max(20, thumbBounds.height - 4), 10, 10);
+                g2.dispose();
+            }
+
+            private JButton zeroButton() {
+                JButton button = new JButton();
+                button.setPreferredSize(new Dimension(0, 0));
+                button.setMinimumSize(new Dimension(0, 0));
+                button.setMaximumSize(new Dimension(0, 0));
+                return button;
+            }
+        });
     }
 
     static final class Form extends JPanel {
@@ -565,8 +731,8 @@ final class Ui {
             Graphics2D g = (Graphics2D) graphics.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             Paint paint = new LinearGradientPaint(0, 0, getWidth(), getHeight(),
-                    new float[]{0f, 0.36f, 0.68f, 1f},
-                    new Color[]{new Color(6, 8, 17), new Color(29, 13, 42), new Color(12, 42, 48), new Color(47, 23, 36)});
+                    new float[]{0f, 0.25f, 0.62f, 1f},
+                    new Color[]{new Color(5, 8, 17), new Color(14, 20, 38), new Color(16, 40, 48), new Color(44, 21, 40)});
             g.setPaint(paint);
             g.fillRect(0, 0, getWidth(), getHeight());
             g.setColor(new Color(255, 255, 255, 16));
@@ -579,14 +745,37 @@ final class Ui {
             g.fillOval(-130, -110, 320, 320);
             g.setColor(new Color(58, 223, 201, 34));
             g.fillOval(getWidth() - 260, getHeight() - 240, 420, 360);
+            g.setColor(new Color(255, 255, 255, 20));
+            for (int i = 0; i < 42; i++) {
+                int x = 18 + (i * 97) % Math.max(98, getWidth() - 36);
+                int y = 14 + (i * 61) % Math.max(70, getHeight() - 28);
+                g.fillOval(x, y, 2, 2);
+            }
             g.dispose();
         }
     }
 
     static final class ArenaPanel extends JPanel {
+        private String scene = "combate";
+        private String[] rankingNames = {"-", "-", "-"};
+
         ArenaPanel() {
             setOpaque(false);
             setPreferredSize(new Dimension(480, 300));
+        }
+
+        void setScene(String scene) {
+            this.scene = scene == null ? "combate" : scene;
+            repaint();
+        }
+
+        void setRankingNames(String first, String second, String third) {
+            rankingNames = new String[]{
+                    first == null || first.isBlank() ? "-" : first,
+                    second == null || second.isBlank() ? "-" : second,
+                    third == null || third.isBlank() ? "-" : third
+            };
+            repaint();
         }
 
         @Override
@@ -596,24 +785,194 @@ final class Ui {
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             int w = getWidth();
             int h = getHeight();
-            g.setColor(new Color(3, 6, 12, 180));
-            g.fillRoundRect(10, 10, w - 20, h - 20, 18, 18);
-            g.setPaint(new GradientPaint(18, 18, new Color(255, 194, 85, 135), w - 18, h - 18, new Color(58, 223, 201, 135)));
+            g.setColor(new Color(3, 6, 12, 190));
+            g.fillRoundRect(10, 10, w - 20, h - 20, 22, 22);
+            g.setPaint(new GradientPaint(18, 18, new Color(255, 194, 85, 125), w - 18, h - 18, new Color(58, 223, 201, 135)));
             g.setStroke(new BasicStroke(2f));
-            g.drawRoundRect(18, 18, w - 36, h - 36, 16, 16);
-            g.setColor(new Color(58, 223, 201, 70));
-            g.fillOval(w / 2 - 116, h / 2 - 58, 232, 116);
-            g.setColor(new Color(232, 72, 101, 170));
-            g.fillRoundRect(w / 2 - 165, h / 2 - 18, 92, 88, 12, 12);
-            g.setColor(new Color(255, 194, 85, 185));
-            g.fillRoundRect(w / 2 + 76, h / 2 - 40, 92, 112, 12, 12);
+            g.drawRoundRect(18, 18, w - 36, h - 36, 18, 18);
+
+            drawScene(g, w, h);
+
             g.setColor(TEXT);
             g.setFont(getFont().deriveFont(Font.BOLD, 25f));
             g.drawString("ARENA METPROG", 42, 60);
             g.setColor(MUTED);
             g.setFont(getFont().deriveFont(Font.PLAIN, 14f));
-            g.drawString("Combates, desafios y ranking persistente", 42, 84);
+            g.drawString(sceneCopy(), 42, 84);
             g.dispose();
+        }
+
+        private void drawScene(Graphics2D g, int w, int h) {
+            switch (scene) {
+                case "jugadores" -> drawPlayersScene(g, w, h);
+                case "operadores" -> drawOperatorsScene(g, w, h);
+                case "razas" -> drawRacesScene(g, w, h);
+                case "ranking" -> drawRankingScene(g, w, h);
+                case "persistencia" -> drawPersistenceScene(g, w, h);
+                default -> drawCombatScene(g, w, h);
+            }
+        }
+
+        private String sceneCopy() {
+            return switch (scene) {
+                case "jugadores" -> "Alta, acceso y gestion visual para jugadores";
+                case "operadores" -> "Panel de control para validacion, bloqueo y supervision";
+                case "razas" -> "Vampiros, licantropos y cazadores con identidad propia";
+                case "ranking" -> "Podio, oro y progreso competitivo de toda la arena";
+                case "persistencia" -> "Datos, historial y estado del sistema persistidos";
+                default -> "Combates, desafios, ranking y fichas visuales persistentes";
+            };
+        }
+
+        private void drawCombatScene(Graphics2D g, int w, int h) {
+            g.setColor(new Color(58, 223, 201, 52));
+            g.fillOval(w / 2 - 148, h / 2 - 70, 296, 140);
+            g.setColor(new Color(255, 194, 85, 34));
+            g.fillOval(w / 2 - 184, h / 2 - 92, 368, 184);
+            drawPosterFighter(g, w / 2 - 180, h / 2 - 36, VAMPIRE, true, "vampire");
+            drawPosterFighter(g, w / 2 + 82, h / 2 - 44, GOLD, false, "hunter");
+        }
+
+        private void drawPlayersScene(Graphics2D g, int w, int h) {
+            for (int i = 0; i < 3; i++) {
+                int x = 88 + i * 156;
+                g.setColor(new Color(255, 255, 255, 16));
+                g.fillRoundRect(x, 120, 122, 124, 18, 18);
+                g.setColor(new Color(95 + i * 25, 154, 255 - i * 30, 80));
+                g.drawRoundRect(x, 120, 122, 124, 18, 18);
+                drawAvatarBust(g, x + 24, 138, i == 0 ? VAMPIRE : i == 1 ? HUNTER : WOLF);
+            }
+        }
+
+        private void drawOperatorsScene(Graphics2D g, int w, int h) {
+            g.setColor(new Color(121, 92, 255, 42));
+            g.fillRoundRect(98, 126, w - 196, 108, 18, 18);
+            g.setColor(new Color(255, 255, 255, 25));
+            g.drawRoundRect(98, 126, w - 196, 108, 18, 18);
+            for (int i = 0; i < 4; i++) {
+                int x = 126 + i * 148;
+                g.setColor(new Color(73, 221, 216, 86));
+                g.fillRoundRect(x, 156, 116, 22, 10, 10);
+                g.setColor(new Color(255, 194, 85, 80));
+                g.fillRoundRect(x, 192, 88, 12, 10, 10);
+            }
+            drawAvatarBust(g, w / 2 - 32, 94, VIOLET);
+        }
+
+        private void drawRacesScene(Graphics2D g, int w, int h) {
+            drawPosterFighter(g, 78, 112, VAMPIRE, true, "vampire");
+            drawPosterFighter(g, w / 2 - 46, 102, WOLF, true, "wolf");
+            drawPosterFighter(g, w - 244, 112, HUNTER, false, "hunter");
+        }
+
+        private void drawRankingScene(Graphics2D g, int w, int h) {
+            int baseY = h - 86;
+            drawPodiumBlock(g, w / 2 - 164, baseY - 42, 78, 42, BLUE, "2");
+            drawPodiumBlock(g, w / 2 - 52, baseY - 74, 92, 74, GOLD, "1");
+            drawPodiumBlock(g, w / 2 + 72, baseY - 28, 72, 28, CRIMSON, "3");
+            drawRankingName(g, w / 2 - 124, baseY - 56, rankingNames[1], BLUE);
+            drawRankingName(g, w / 2 - 6, baseY - 92, rankingNames[0], GOLD);
+            drawRankingName(g, w / 2 + 108, baseY - 42, rankingNames[2], CRIMSON);
+        }
+
+        private void drawPersistenceScene(Graphics2D g, int w, int h) {
+            g.setColor(new Color(255, 194, 85, 32));
+            g.fillRoundRect(122, 124, 146, 98, 18, 18);
+            g.setColor(new Color(255, 255, 255, 22));
+            g.drawRoundRect(122, 124, 146, 98, 18, 18);
+            g.setColor(new Color(73, 221, 216, 62));
+            g.fillOval(w / 2 - 44, 126, 88, 88);
+            g.setColor(new Color(166, 105, 255, 80));
+            for (int i = 0; i < 5; i++) {
+                g.drawLine(w / 2 + 36, 168, w - 148 + i * 2, 122 + i * 24);
+            }
+            g.setColor(new Color(255, 255, 255, 38));
+            g.fillRoundRect(w - 198, 124, 92, 112, 18, 18);
+        }
+
+        private void drawPosterFighter(Graphics2D g, int x, int y, Color accent, boolean left, String mode) {
+            g.setColor(new Color(255, 255, 255, 30));
+            g.fillOval(x - 10, y + 134, 126, 20);
+            g.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 30));
+            g.fillOval(x - 18, y - 8, 136, 154);
+
+            g.setPaint(new GradientPaint(x + 14, y + 44, accent.darker(), x + 88, y + 134, accent.brighter()));
+            int[] capeX = {x + 10, x + 78, x + 104, x - 12};
+            int[] capeY = {y + 40, y + 36, y + 132, y + 138};
+            g.fillPolygon(capeX, capeY, capeX.length);
+
+            g.setColor(new Color(11, 14, 24));
+            g.fillRoundRect(x + 20, y + 46, 56, 78, 22, 22);
+            g.setColor(new Color(244, 229, 212));
+            g.fillOval(x + 28, y + 6, 38, 42);
+            g.setColor(new Color(5, 8, 16));
+            g.fillOval(x + 41, y + 22, 4, 4);
+            g.fillOval(x + 50, y + 22, 4, 4);
+            g.setColor(accent.darker());
+            g.fillArc(x + 24, y - 2, 46, 22, 0, 180);
+
+            if ("vampire".equals(mode)) {
+                g.setStroke(new BasicStroke(3f));
+                g.setColor(accent);
+                g.drawLine(x + 6, y + 30, x + 20, y + 72);
+                g.drawLine(x + 78, y + 34, x + 98, y + 78);
+                g.setColor(GOLD);
+                g.drawLine(x + 68, y + 8, x + 94, y - 6);
+            } else if ("wolf".equals(mode)) {
+                int[] x1 = {x + 24, x + 34, x + 40};
+                int[] y1 = {y + 8, y - 10, y + 8};
+                int[] x2 = {x + 52, x + 60, x + 66};
+                int[] y2 = {y + 8, y - 8, y + 10};
+                g.fillPolygon(x1, y1, 3);
+                g.fillPolygon(x2, y2, 3);
+                g.setStroke(new BasicStroke(5f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g.drawLine(x - 10, y + 64, x + 14, y + 54);
+                g.drawLine(x + 80, y + 52, x + 104, y + 38);
+            } else {
+                g.setStroke(new BasicStroke(4f));
+                g.setColor(accent);
+                if (left) {
+                    g.drawLine(x + 76, y + 44, x + 104, y + 16);
+                    g.drawLine(x + 104, y + 16, x + 114, y + 28);
+                } else {
+                    g.drawLine(x + 18, y + 44, x - 10, y + 16);
+                    g.drawLine(x - 10, y + 16, x - 20, y + 28);
+                }
+            }
+        }
+
+        private void drawAvatarBust(Graphics2D g, int x, int y, Color accent) {
+            g.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 54));
+            g.fillOval(x - 12, y - 4, 82, 96);
+            g.setColor(new Color(246, 231, 214));
+            g.fillOval(x + 10, y, 34, 36);
+            g.setPaint(new GradientPaint(x, y + 30, accent.darker(), x + 58, y + 88, accent.brighter()));
+            g.fillRoundRect(x, y + 30, 56, 58, 18, 18);
+            g.setColor(new Color(9, 11, 18));
+            g.fillArc(x + 8, y - 2, 38, 18, 0, 180);
+        }
+
+        private void drawPodiumBlock(Graphics2D g, int x, int y, int width, int height, Color color, String place) {
+            g.setPaint(new GradientPaint(x, y, color, x, y + height, color.darker()));
+            g.fillRoundRect(x, y, width, height, 16, 16);
+            g.setColor(new Color(255, 255, 255, 90));
+            g.drawRoundRect(x, y, width, height, 16, 16);
+            g.setColor(TEXT);
+            g.setFont(getFont().deriveFont(Font.BOLD, 22f));
+            g.drawString(place, x + width / 2 - 6, y + height / 2 + 8);
+        }
+
+        private void drawRankingName(Graphics2D g, int x, int y, String name, Color color) {
+            String trimmed = name.length() > 12 ? name.substring(0, 12) + "…" : name;
+            g.setColor(new Color(3, 6, 12, 210));
+            int width = Math.max(74, g.getFontMetrics(getFont().deriveFont(Font.BOLD, 12f)).stringWidth(trimmed) + 18);
+            g.fillRoundRect(x - width / 2, y - 16, width, 24, 12, 12);
+            g.setColor(color);
+            g.drawRoundRect(x - width / 2, y - 16, width, 24, 12, 12);
+            g.setColor(TEXT);
+            g.setFont(getFont().deriveFont(Font.BOLD, 12f));
+            int textWidth = g.getFontMetrics().stringWidth(trimmed);
+            g.drawString(trimmed, x - textWidth / 2, y);
         }
     }
 
@@ -633,7 +992,9 @@ final class Ui {
             Graphics2D g = (Graphics2D) graphics.create();
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g.setPaint(new GradientPaint(0, 0, start, getWidth(), getHeight(), end));
-            g.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+            g.fillRoundRect(0, 0, getWidth(), getHeight(), 18, 18);
+            g.setColor(new Color(255, 255, 255, 10));
+            g.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 18, 18);
             g.dispose();
             super.paintComponent(graphics);
         }
@@ -709,6 +1070,8 @@ final class Ui {
             Color b = selected ? Ui.GOLD : getModel().isPressed() ? start.darker() : getModel().isRollover() ? end.brighter() : end;
             g.setPaint(new GradientPaint(0, 0, a, getWidth(), getHeight(), b));
             g.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
+            g.setColor(new Color(255, 255, 255, selected ? 34 : 18));
+            g.fillRoundRect(2, 2, getWidth() - 4, Math.max(6, getHeight() / 2), 12, 12);
             g.setColor(new Color(255, 255, 255, selected ? 150 : getModel().isRollover() ? 95 : 45));
             g.setStroke(new BasicStroke(selected ? 2.4f : 1.2f));
             g.drawRoundRect(1, 1, getWidth() - 3, getHeight() - 3, 12, 12);

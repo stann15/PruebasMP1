@@ -37,6 +37,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Consumer;
 
 final class FantasyCombatFrame extends javax.swing.JFrame {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -68,14 +69,76 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
         outer.setBorder(javax.swing.BorderFactory.createEmptyBorder(44, 58, 44, 58));
 
         JPanel hero = Ui.transparent(new BorderLayout(16, 18));
-        JLabel title = Ui.title("MetProg Combate Fantastico", 34f);
-        JLabel subtitle = Ui.small("Arena grafica para jugadores y operadores");
+        JLabel title = Ui.title("MetProg Combate Fantastico", 36f);
+        JLabel subtitle = Ui.small("Arena grafica premium para jugadores, operadores, ranking y simulacion visual");
         Ui.ArenaPanel arena = new Ui.ArenaPanel();
+        List<EntradaRanking> publicRanking = sistema.consultarRanking();
+        JLabel featureEyebrow = Ui.small("Edicion grafica");
+        JLabel featureTitle = Ui.title("La arena esta lista para combatir", 26f);
+        JLabel featureCopy = Ui.label("Gestiona cuentas, personajes, equipo, desafios, ranking y combate desde una interfaz mucho mas visual.");
+        featureCopy.setForeground(Ui.MUTED);
+        JPanel spotlight = Ui.card();
+        JPanel spotlightText = Ui.transparent(new BorderLayout(0, 8));
+        spotlightText.add(featureEyebrow, BorderLayout.NORTH);
+        spotlightText.add(featureTitle, BorderLayout.CENTER);
+        spotlightText.add(featureCopy, BorderLayout.SOUTH);
+        spotlight.add(spotlightText, BorderLayout.CENTER);
         JPanel titleBlock = Ui.transparent(new BorderLayout(6, 6));
         titleBlock.add(title, BorderLayout.NORTH);
         titleBlock.add(subtitle, BorderLayout.SOUTH);
-        hero.add(titleBlock, BorderLayout.NORTH);
+        Consumer<String> showFeature = feature -> {
+            switch (feature) {
+                case "jugadores" -> {
+                    featureEyebrow.setText("Jugadores");
+                    featureTitle.setText("Alta y acceso con mejor presencia");
+                    featureCopy.setText("La portada ya no tiene adornos muertos: puedes explorar visualmente las funciones base antes de entrar.");
+                }
+                case "operadores" -> {
+                    featureEyebrow.setText("Operadores");
+                    featureTitle.setText("Supervision con identidad propia");
+                    featureCopy.setText("La parte operativa se presenta como consola de control, no como una pantalla generica sin caracter.");
+                }
+                case "razas" -> {
+                    featureEyebrow.setText("Razas");
+                    featureTitle.setText("Tres linajes, tres presencias");
+                    featureCopy.setText("Vampiro, licantropo y cazador pasan a tener una lectura visual propia y mas reconocible.");
+                }
+                case "ranking" -> {
+                    featureEyebrow.setText("Ranking");
+                    featureTitle.setText("Lectura competitiva de verdad");
+                    featureCopy.setText("El ranking se presenta como una vitrina de progreso con podio y jerarquia visual mas clara.");
+                    arena.setRankingNames(
+                            publicRanking.size() > 0 ? publicRanking.get(0).nickJugador() : "-",
+                            publicRanking.size() > 1 ? publicRanking.get(1).nickJugador() : "-",
+                            publicRanking.size() > 2 ? publicRanking.get(2).nickJugador() : "-"
+                    );
+                }
+                case "persistencia" -> {
+                    featureEyebrow.setText("Persistencia");
+                    featureTitle.setText("Memoria del sistema");
+                    featureCopy.setText("Combates, oro, historial y estado del juego siguen vivos entre sesiones y ahora tambien se comunican mejor.");
+                }
+                default -> {
+                    featureEyebrow.setText("Combate visual");
+                    featureTitle.setText("La arena esta lista para combatir");
+                    featureCopy.setText("La portada deja de ser estatica y presenta una escena mas rica, menos placeholder y mas vendible.");
+                    feature = "combate";
+                    arena.setRankingNames("-", "-", "-");
+                }
+            }
+            arena.setScene(feature);
+        };
+        hero.add(spotlight, BorderLayout.NORTH);
         hero.add(arena, BorderLayout.CENTER);
+        JPanel featureActions = Ui.transparent(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        featureActions.add(Visuals.chipButton("Jugadores", Ui.GOLD, event -> showFeature.accept("jugadores")));
+        featureActions.add(Visuals.chipButton("Operadores", Ui.TEAL, event -> showFeature.accept("operadores")));
+        featureActions.add(Visuals.chipButton("Razas", Ui.BLUE, event -> showFeature.accept("razas")));
+        featureActions.add(Visuals.chipButton("Combate visual", Ui.CRIMSON, event -> showFeature.accept("combate")));
+        featureActions.add(Visuals.chipButton("Ranking", Ui.VIOLET, event -> showFeature.accept("ranking")));
+        featureActions.add(Visuals.chipButton("Persistencia", Ui.GREEN, event -> showFeature.accept("persistencia")));
+        hero.add(featureActions, BorderLayout.SOUTH);
+        showFeature.accept("combate");
 
         JPanel auth = Ui.card();
         auth.setPreferredSize(new Dimension(420, 420));
@@ -110,6 +173,7 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
         authBody.add(buttons, BorderLayout.CENTER);
         auth.add(authBody, BorderLayout.CENTER);
 
+        outer.add(titleBlock, BorderLayout.NORTH);
         outer.add(hero, BorderLayout.CENTER);
         outer.add(auth, BorderLayout.EAST);
         return outer;
@@ -166,6 +230,12 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
         JPanel title = Ui.transparent(new BorderLayout(4, 2));
         title.add(Ui.title("Arena MetProg", 24f), BorderLayout.NORTH);
         title.add(Ui.small(user.getRol() + " / " + user.getNick() + (user.isBloqueado() ? " / bloqueado" : "")), BorderLayout.SOUTH);
+        JPanel badgeStrip = Ui.transparent(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        badgeStrip.add(Visuals.badge(String.valueOf(user.getRol()), user instanceof Operador ? Ui.VIOLET : Ui.TEAL));
+        if (user.isBloqueado()) {
+            badgeStrip.add(Visuals.badge("Cuenta bloqueada", Ui.CRIMSON));
+        }
+        title.add(badgeStrip, BorderLayout.EAST);
 
         JButton delete = Ui.dangerButton("Darse de baja");
         JButton logout = Ui.secondaryButton("Cerrar sesion");
@@ -206,9 +276,9 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
     }
 
     private void addNav(JPanel stack, String screen, String label) {
-        JButton button = screen.equals(currentScreen) ? Ui.primaryButton(label) : Ui.secondaryButton(label);
+        JButton button = screen.equals(currentScreen) ? Ui.primaryButton(label) : Ui.ghostButton(label);
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
-        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 46));
+        button.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
         button.addActionListener(event -> showApp(screen));
         stack.add(button);
         stack.add(Box.createVerticalStrut(10));
@@ -255,6 +325,13 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
         List<Desafio> pending = sistema.listarDesafiosPendientesJugadorActual();
         Personaje character = player.getPersonaje();
 
+        panel.add(Visuals.heroBanner(
+                "Sesion de jugador",
+                "Tablero del invocador",
+                "Consulta el estado de tu cuenta, tu personaje activo, tus desafios y el pulso del ranking global.",
+                new java.awt.Color(14, 26, 44),
+                new java.awt.Color(20, 55, 68)));
+
         JPanel metrics = Ui.transparent(new GridLayout(1, 4, 12, 12));
         metrics.add(metric("Registro", player.getNumeroRegistro(), Ui.GOLD));
         metrics.add(metric("Desafios pendientes", String.valueOf(pending.size()), pending.isEmpty() ? Ui.GREEN : Ui.CRIMSON));
@@ -274,6 +351,12 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
         JPanel panel = page();
         List<Jugador> players = sistema.listarJugadores();
         List<Desafio> pending = sistema.listarDesafiosPendientesRevision();
+        panel.add(Visuals.heroBanner(
+                "Consola de operador",
+                "Centro de control",
+                "Supervisa jugadores, valida desafios, ajusta personajes y mantén estable el ecosistema de combate.",
+                new java.awt.Color(22, 18, 43),
+                new java.awt.Color(46, 28, 70)));
         JPanel metrics = Ui.transparent(new GridLayout(1, 3, 12, 12));
         metrics.add(metric("Jugadores", String.valueOf(players.size()), Ui.BLUE));
         metrics.add(metric("Desafios a validar", String.valueOf(pending.size()), pending.isEmpty() ? Ui.GREEN : Ui.GOLD));
@@ -289,6 +372,21 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
     private JPanel characterPanel() {
         Jugador player = requirePlayer();
         JPanel panel = page();
+        if (player.tienePersonaje()) {
+            panel.add(Visuals.heroBanner(
+                    "Ficha activa",
+                    "Tu personaje en primer plano",
+                    "Retrato, estadisticas, equipo y estado general del contendiente actualmente registrado.",
+                    new java.awt.Color(18, 21, 44),
+                    new java.awt.Color(23, 43, 67)));
+        } else {
+            panel.add(Visuals.heroBanner(
+                    "Forja vacia",
+                    "Todavia no hay personaje",
+                    "Crea un personaje para desbloquear equipo, desafios, oro, ranking e historial visual.",
+                    new java.awt.Color(18, 25, 43),
+                    new java.awt.Color(26, 54, 54)));
+        }
         panel.add(characterCard(player));
         if (player.tienePersonaje()) {
             JTextArea details = Ui.textArea();
@@ -311,6 +409,8 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
             body.add(create, BorderLayout.SOUTH);
         } else {
             Personaje p = player.getPersonaje();
+            Visuals.PortraitTabs tabs = Visuals.portraitTabs();
+            tabs.setPortrait(p.getTipo(), p.getNombre(), Visuals.portraitSubtitle(p.getTipo()));
             JPanel metrics = Ui.transparent(new GridLayout(2, 3, 8, 8));
             metrics.add(metric("Nombre", p.getNombre(), Ui.GOLD));
             metrics.add(metric("Poder", String.valueOf(p.getPoder()), Ui.BLUE));
@@ -330,6 +430,7 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
             });
             buttons.add(equip);
             buttons.add(delete);
+            body.add(tabs, BorderLayout.NORTH);
             body.add(metrics, BorderLayout.CENTER);
             body.add(buttons, BorderLayout.SOUTH);
         }
@@ -346,6 +447,12 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
 
     private JPanel playerChallengesPanel() {
         JPanel panel = page();
+        panel.add(Visuals.heroBanner(
+                "Desafios",
+                "Zona de tension competitiva",
+                "Lanza, acepta o revisa desafios con una lectura mucho mas clara del estado de cada cruce.",
+                new java.awt.Color(28, 20, 39),
+                new java.awt.Color(31, 48, 70)));
         panel.add(pendingChallengesCard());
         panel.add(launchChallengeCard());
         panel.add(relatedChallengesCard());
@@ -419,6 +526,12 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
 
     private JPanel operatorChallengesPanel() {
         JPanel panel = page();
+        panel.add(Visuals.heroBanner(
+                "Validacion",
+                "Mesa arbitral",
+                "Revisa el cruce, los modificadores presentes y el estado del desafio antes de lanzarlo a combate.",
+                new java.awt.Color(20, 18, 38),
+                new java.awt.Color(44, 30, 70)));
         panel.add(operatorPendingCard(sistema.listarDesafiosPendientesRevision()));
         return pad(panel);
     }
@@ -450,6 +563,12 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
 
     private JPanel playersPanel() {
         JPanel panel = page();
+        panel.add(Visuals.heroBanner(
+                "Gestion de jugadores",
+                "Vista operativa completa",
+                "Consulta cuentas, personajes, oro, bloqueo y acceso a herramientas de mantenimiento desde una sola pantalla.",
+                new java.awt.Color(18, 22, 37),
+                new java.awt.Color(34, 35, 72)));
         panel.add(playersTableCard(sistema.listarJugadores()));
         return pad(panel);
     }
@@ -517,8 +636,9 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
 
     private JPanel rankingPanel() {
         JPanel panel = page();
+        List<EntradaRanking> ranking = sistema.consultarRanking();
         DefaultTableModel model = Ui.model("Pos.", "Jugador", "Personaje", "Oro", "Victorias", "Derrotas");
-        for (EntradaRanking entry : sistema.consultarRanking()) {
+        for (EntradaRanking entry : ranking) {
             model.addRow(new Object[]{
                     entry.posicion(),
                     entry.nickJugador(),
@@ -528,12 +648,25 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
                     entry.derrotas()
             });
         }
+        panel.add(Visuals.heroBanner(
+                "Clasificacion global",
+                "Sala del podio",
+                "Consulta la clasificacion con un podio visual, lecturas rapidas y el detalle completo de cada contendiente.",
+                new java.awt.Color(21, 20, 42),
+                new java.awt.Color(41, 33, 68)));
+        panel.add(Ui.titled("Podio", Visuals.rankingPodium(ranking)));
         panel.add(Ui.titled("Ranking global", Ui.scroll(Ui.table(model))));
         return pad(panel);
     }
 
     private JPanel historyPanel() {
         JPanel panel = page();
+        panel.add(Visuals.heroBanner(
+                "Historial",
+                "Memoria de combates",
+                "Revisa combates resueltos, rondas, oro ganado y el detalle de la simulacion visual.",
+                new java.awt.Color(15, 22, 37),
+                new java.awt.Color(19, 47, 63)));
         if (sistema.getUsuarioActual() instanceof Jugador) {
             panel.add(historyCard(sistema.listarHistorialJugadorActual()));
         } else {
@@ -581,6 +714,12 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
 
     private JPanel goldPanel() {
         JPanel panel = page();
+        panel.add(Visuals.heroBanner(
+                "Economia",
+                "Libro mayor del personaje",
+                "Consulta de forma clara los movimientos de oro, origen del delta y saldo final tras cada evento.",
+                new java.awt.Color(25, 21, 34),
+                new java.awt.Color(63, 46, 23)));
         DefaultTableModel model = Ui.model("Fecha", "Concepto", "Delta", "Saldo");
         for (MovimientoOro move : sistema.listarMovimientosOroJugadorActual()) {
             model.addRow(new Object[]{
@@ -596,6 +735,12 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
 
     private JPanel notificationsPanel() {
         JPanel panel = page();
+        panel.add(Visuals.heroBanner(
+                "Notificaciones",
+                "Bandeja del combate fantastico",
+                "Recibe avisos del sistema, resultados de desafios y cambios administrativos con una lectura mas limpia.",
+                new java.awt.Color(18, 23, 36),
+                new java.awt.Color(26, 48, 64)));
         JTextArea area = Ui.textArea();
         List<String> notifications = sistema.verNotificacionesActuales();
         area.setText(notifications.isEmpty() ? "No hay notificaciones." : String.join(System.lineSeparator() + System.lineSeparator(), notifications));
@@ -612,6 +757,7 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
         JPanel body = Ui.transparent(new BorderLayout(8, 8));
         DefaultTableModel model = Ui.model("Pos.", "Jugador", "Personaje", "Oro");
         List<EntradaRanking> ranking = sistema.consultarRanking();
+        body.add(Visuals.rankingPodium(ranking.stream().limit(3).toList()), BorderLayout.NORTH);
         for (EntradaRanking entry : ranking.stream().limit(6).toList()) {
             model.addRow(new Object[]{entry.posicion(), entry.nickJugador(), entry.nombrePersonaje(), entry.oroActual()});
         }
@@ -626,8 +772,18 @@ final class FantasyCombatFrame extends javax.swing.JFrame {
         if (confirm("Quieres revisar tu equipo activo antes del combate?")) {
             Jugador player = requirePlayer();
             if (player.tienePersonaje()) {
-                EquipDialog.show(this, player.getPersonaje())
-                        .ifPresent(selection -> runAction("Equipo actualizado", () -> sistema.equiparJugadorActual(selection.weaponNames(), selection.armorName())));
+                Optional<EquipSelection> selection = EquipDialog.show(this, player.getPersonaje());
+                if (selection.isPresent()) {
+                    try {
+                        sistema.equiparJugadorActualAntesDeAceptarDesafio(id, selection.get().weaponNames(), selection.get().armorName());
+                    } catch (DomainException | IllegalArgumentException ex) {
+                        error(ex.getMessage());
+                        return;
+                    } catch (Exception ex) {
+                        error("Error inesperado: " + ex.getMessage());
+                        return;
+                    }
+                }
             }
         }
         runAction("Combate ejecutado", () -> {

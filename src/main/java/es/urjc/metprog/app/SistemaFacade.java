@@ -145,6 +145,15 @@ public class SistemaFacade {
         baseDeDatos.persistirCambios();
     }
 
+    public void equiparJugadorActualAntesDeAceptarDesafio(String idDesafio, List<String> nombresArmas, String nombreArmadura) {
+        Jugador jugador = asegurarJugadorActual();
+        asegurarPuedeAjustarEquipoAntesDeAceptarDesafio(jugador, idDesafio);
+        asegurarPersonaje(jugador);
+        jugador.getPersonaje().equiparArmas(nombresArmas);
+        jugador.getPersonaje().equiparArmadura(nombreArmadura);
+        baseDeDatos.persistirCambios();
+    }
+
     public void equiparPersonajeDeJugador(String nickJugador, List<String> nombresArmas, String nombreArmadura) {
         asegurarOperadorActual();
         Jugador jugador = obtenerJugador(nickJugador);
@@ -193,6 +202,9 @@ public class SistemaFacade {
             throw new DomainException("Tu cuenta esta bloqueada y no puede lanzar desafios.");
         }
         Jugador desafiado = obtenerJugador(nickDesafiado);
+        if (desafiado.isBloqueado()) {
+            throw new DomainException("El usuario desafiado esta bloqueado y no puede recibir desafios.");
+        }
         if (desafiante.getNick().equalsIgnoreCase(desafiado.getNick())) {
             throw new DomainException("No puedes desafiarte a ti mismo.");
         }
@@ -234,6 +246,18 @@ public class SistemaFacade {
         Desafio desafio = obtenerDesafio(idDesafio);
         Jugador desafiante = obtenerJugador(desafio.getNickDesafiante());
         Jugador desafiado = obtenerJugador(desafio.getNickDesafiado());
+
+        String motivoBloqueo = motivoRechazoPorBloqueo(desafiante, desafiado);
+        if (motivoBloqueo != null) {
+            desafio.rechazarAdministrativamente(motivoBloqueo);
+            publicadorNotificaciones.notificar(
+                    desafiante,
+                    TipoNotificacion.DESAFIO_RECHAZADO,
+                    "Tu desafio contra " + desafiado.getNick() + " ha sido rechazado. Motivo: " + motivoBloqueo
+            );
+            baseDeDatos.persistirCambios();
+            return;
+        }
 
         LocalDateTime limite = LocalDateTime.now().minusHours(24);
         if (desafiado.getFechaUltimaDerrota() != null && desafiado.getFechaUltimaDerrota().isAfter(limite)) {
@@ -385,6 +409,16 @@ public class SistemaFacade {
                 .anyMatch(desafio -> desafio.estaPendienteRevision() || desafio.estaPendienteRespuesta());
     }
 
+    private String motivoRechazoPorBloqueo(Jugador desafiante, Jugador desafiado) {
+        if (desafiante.isBloqueado()) {
+            return "El usuario desafiante esta bloqueado.";
+        }
+        if (desafiado.isBloqueado()) {
+            return "El usuario desafiado esta bloqueado.";
+        }
+        return null;
+    }
+
     private void eliminarDesafiosDeUsuario(String nick) {
         List<Desafio> relacionados = new ArrayList<>(baseDeDatos.listarDesafiosRelacionados(nick));
         for (Desafio desafio : relacionados) {
@@ -433,6 +467,16 @@ public class SistemaFacade {
     private void asegurarPersonaje(Jugador jugador) {
         if (!jugador.tienePersonaje()) {
             throw new DomainException("El jugador " + jugador.getNick() + " no tiene personaje registrado.");
+        }
+    }
+
+    private void asegurarPuedeAjustarEquipoAntesDeAceptarDesafio(Jugador jugador, String idDesafio) {
+        Desafio desafio = obtenerDesafio(idDesafio);
+        if (!desafio.getNickDesafiado().equalsIgnoreCase(jugador.getNick())) {
+            throw new DomainException("Solo el usuario desafiado puede ajustar su equipo antes del combate.");
+        }
+        if (!desafio.estaPendienteRespuesta()) {
+            throw new DomainException("Solo se puede ajustar el equipo cuando el desafio esta validado y pendiente de aceptar.");
         }
     }
 

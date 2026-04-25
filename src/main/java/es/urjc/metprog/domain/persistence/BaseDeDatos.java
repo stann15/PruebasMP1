@@ -269,9 +269,12 @@ public class BaseDeDatos {
             appendLine(texto, "- Fecha: " + combate.getFecha());
             appendLine(texto, "  Desafiante: " + combate.getNickDesafiante());
             appendLine(texto, "  Desafiado: " + combate.getNickDesafiado());
+            appendLine(texto, "  Apuesta: " + combate.getApuesta());
             appendLine(texto, "  Rondas: " + combate.getRondas());
             appendLine(texto, "  Vencedor: " + (combate.esEmpate() ? "EMPATE" : combate.getVencedor()));
             appendLine(texto, "  Oro ganado: " + combate.getOroGanado());
+            appendLine(texto, "  Oro final desafiante: " + combate.getOroFinalDesafiante());
+            appendLine(texto, "  Oro final desafiado: " + combate.getOroFinalDesafiado());
             appendLine(texto, "  Esbirros supervivientes desafiante: " + textoLista(combate.getEsbirrosSupervivientesDesafiante()));
             appendLine(texto, "  Esbirros supervivientes desafiado: " + textoLista(combate.getEsbirrosSupervivientesDesafiado()));
             appendLine(texto, "  Eventos:");

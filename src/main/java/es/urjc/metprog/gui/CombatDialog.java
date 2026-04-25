@@ -6,6 +6,7 @@ import javax.swing.JButton;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
@@ -35,7 +36,17 @@ final class CombatDialog {
         JDialog dialog = new JDialog(owner, "Resultado del combate", java.awt.Dialog.ModalityType.APPLICATION_MODAL);
         dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-        ArenaReplayPanel replay = new ArenaReplayPanel(registro);
+        JTextArea report = Ui.textArea();
+        report.setText("El informe detallado se mostrara automaticamente cuando termine la simulacion.");
+        report.setCaretPosition(0);
+
+        JTabbedPane detailsTabs = Ui.tabbedPane();
+        ArenaReplayPanel replay = new ArenaReplayPanel(registro, () -> {
+            report.setText(buildRoundReport(registro));
+            report.setCaretPosition(0);
+            detailsTabs.setSelectedIndex(1);
+            showReportWindow(dialog, registro);
+        });
         JPanel speedControls = Ui.transparent(new FlowLayout(FlowLayout.LEFT, 8, 0));
         speedControls.add(Ui.small("Velocidad"));
         JButton speed1 = Ui.primaryButton("x1");
@@ -50,21 +61,27 @@ final class CombatDialog {
         speedControls.add(speed5);
         speedControls.add(speed10);
 
-        JPanel summary = Ui.transparent(new GridLayout(1, 4, 12, 12));
+        JPanel summary = Ui.transparent(new GridLayout(1, 5, 12, 12));
         summary.add(metric("Rondas", String.valueOf(registro.getRondas()), Ui.BLUE));
         summary.add(metric("Vencedor", registro.esEmpate() ? "EMPATE" : registro.getVencedor(), registro.esEmpate() ? Ui.MUTED : Ui.GOLD));
-        summary.add(metric("Oro", String.valueOf(registro.getOroGanado()), Ui.GREEN));
+        summary.add(metric("Apuesta", String.valueOf(registro.getApuesta()), Ui.GOLD));
+        summary.add(metric("Oro movido", String.valueOf(registro.getOroGanado()), Ui.GREEN));
         summary.add(metric("Fecha", FORMAT.format(registro.getFecha()), Ui.TEAL));
+        JPanel combatants = Ui.transparent(new GridLayout(1, 2, 12, 12));
+        combatants.add(combatantCard("Desafiante", registro.getNickDesafiante(), Ui.CRIMSON,
+                registro.esEmpate() || registro.getNickDesafiante().equalsIgnoreCase(registro.getVencedor())));
+        combatants.add(combatantCard("Desafiado", registro.getNickDesafiado(), Ui.GOLD,
+                registro.esEmpate() || registro.getNickDesafiado().equalsIgnoreCase(registro.getVencedor())));
 
         JTextArea events = Ui.textArea();
         events.setText(String.join(System.lineSeparator(), registro.getEventos()));
         events.setCaretPosition(0);
 
         JTextArea survivors = Ui.textArea();
-        survivors.setText("Supervivientes de " + registro.getNickDesafiante() + ": "
-                + registro.getEsbirrosSupervivientesDesafiante() + System.lineSeparator()
-                + "Supervivientes de " + registro.getNickDesafiado() + ": "
-                + registro.getEsbirrosSupervivientesDesafiado());
+        survivors.setText("Esbirros vivos de " + registro.getNickDesafiante() + ": "
+                + registro.getNumeroEsbirrosSupervivientesDesafiante() + " -> " + registro.getEsbirrosSupervivientesDesafiante() + System.lineSeparator()
+                + "Esbirros vivos de " + registro.getNickDesafiado() + ": "
+                + registro.getNumeroEsbirrosSupervivientesDesafiado() + " -> " + registro.getEsbirrosSupervivientesDesafiado());
 
         JButton close = Ui.primaryButton("Cerrar");
         close.addActionListener(event -> dialog.dispose());
@@ -78,11 +95,14 @@ final class CombatDialog {
         root.add(title, BorderLayout.NORTH);
         JPanel center = Ui.transparent(new BorderLayout(12, 12));
         JPanel top = Ui.transparent(new BorderLayout(12, 12));
+        top.add(combatants, BorderLayout.NORTH);
         top.add(replay, BorderLayout.CENTER);
         top.add(summary, BorderLayout.SOUTH);
         center.add(top, BorderLayout.NORTH);
-        center.add(Ui.titled("Eventos por ronda", Ui.scroll(events)), BorderLayout.CENTER);
-        center.add(Ui.titled("Esbirros supervivientes", Ui.scroll(survivors)), BorderLayout.SOUTH);
+        detailsTabs.addTab("Eventos", Ui.scroll(events));
+        detailsTabs.addTab("Informe final", Ui.scroll(report));
+        detailsTabs.addTab("Esbirros", Ui.scroll(survivors));
+        center.add(Ui.titled("Detalle del combate", detailsTabs), BorderLayout.CENTER);
         root.add(center, BorderLayout.CENTER);
         root.add(actions, BorderLayout.SOUTH);
 
@@ -102,6 +122,105 @@ final class CombatDialog {
         dialog.setLocationRelativeTo(owner);
         dialog.getRootPane().setDefaultButton(close);
         dialog.setVisible(true);
+    }
+
+    private static String buildRoundReport(RegistroCombate registro) {
+        String line = System.lineSeparator();
+        StringBuilder report = new StringBuilder();
+        report.append("INFORME DETALLADO DEL COMBATE").append(line).append(line);
+        report.append("Desafiante: ").append(registro.getNickDesafiante()).append(line);
+        report.append("Desafiado: ").append(registro.getNickDesafiado()).append(line);
+        report.append("Fecha: ").append(FORMAT.format(registro.getFecha())).append(line);
+        report.append("Apuesta inicial: ").append(registro.getApuesta()).append(" monedas").append(line);
+        report.append("Rondas disputadas: ").append(registro.getRondas()).append(line);
+        report.append("Resultado final: ")
+                .append(registro.esEmpate() ? "Empate" : "Victoria de " + registro.getVencedor())
+                .append(line);
+        report.append("Oro transferido: ").append(registro.getOroGanado()).append(" monedas").append(line);
+        report.append("Oro total final de ").append(registro.getNickDesafiante()).append(": ")
+                .append(registro.getOroFinalDesafiante()).append(line);
+        report.append("Oro total final de ").append(registro.getNickDesafiado()).append(": ")
+                .append(registro.getOroFinalDesafiado()).append(line);
+        report.append("Esbirros vivos de ").append(registro.getNickDesafiante()).append(": ")
+                .append(registro.getNumeroEsbirrosSupervivientesDesafiante()).append(" -> ")
+                .append(registro.getEsbirrosSupervivientesDesafiante()).append(line);
+        report.append("Esbirros vivos de ").append(registro.getNickDesafiado()).append(": ")
+                .append(registro.getNumeroEsbirrosSupervivientesDesafiado()).append(" -> ")
+                .append(registro.getEsbirrosSupervivientesDesafiado()).append(line).append(line);
+
+        List<String> cierre = new java.util.ArrayList<>();
+        boolean firstRound = true;
+        for (String event : registro.getEventos()) {
+            if (event.startsWith("----- Ronda ")) {
+                if (!firstRound) {
+                    report.append(line);
+                }
+                report.append(event.replace("----- ", "").replace(" -----", "")).append(line);
+                firstRound = false;
+                continue;
+            }
+            if (event.startsWith("Vencedor final:")
+                    || event.startsWith("El combate termina")
+                    || event.startsWith("El combate se ha cerrado")) {
+                cierre.add(event);
+                continue;
+            }
+            report.append(" - ").append(event).append(line);
+        }
+
+        report.append(line).append("CIERRE").append(line);
+        if (cierre.isEmpty()) {
+            report.append(" - No hay incidencias finales adicionales.").append(line);
+        } else {
+            for (String event : cierre) {
+                report.append(" - ").append(event).append(line);
+            }
+        }
+        report.append(" - Oro final de ")
+                .append(registro.getNickDesafiante())
+                .append(": ")
+                .append(registro.getOroFinalDesafiante())
+                .append(line);
+        report.append(" - Oro final de ")
+                .append(registro.getNickDesafiado())
+                .append(": ")
+                .append(registro.getOroFinalDesafiado());
+        return report.toString();
+    }
+
+    private static void showReportWindow(Window owner, RegistroCombate registro) {
+        JDialog reportDialog = new JDialog(owner, "Informe detallado del combate", java.awt.Dialog.ModalityType.MODELESS);
+        reportDialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+
+        JTextArea report = Ui.textArea();
+        report.setText(buildRoundReport(registro));
+        report.setCaretPosition(0);
+
+        JPanel summary = Ui.transparent(new GridLayout(2, 3, 12, 12));
+        summary.add(metric("Vencedor", registro.esEmpate() ? "EMPATE" : registro.getVencedor(), registro.esEmpate() ? Ui.MUTED : Ui.GOLD));
+        summary.add(metric("Apuesta", String.valueOf(registro.getApuesta()), Ui.GOLD));
+        summary.add(metric("Oro movido", String.valueOf(registro.getOroGanado()), Ui.GREEN));
+        summary.add(metric("Oro final " + registro.getNickDesafiante(), String.valueOf(registro.getOroFinalDesafiante()), Ui.BLUE));
+        summary.add(metric("Oro final " + registro.getNickDesafiado(), String.valueOf(registro.getOroFinalDesafiado()), Ui.TEAL));
+        summary.add(metric("Esbirros vivos", registro.getNumeroEsbirrosSupervivientesDesafiante() + " / " + registro.getNumeroEsbirrosSupervivientesDesafiado(), Ui.TEXT));
+
+        JButton close = Ui.primaryButton("Cerrar informe");
+        close.addActionListener(event -> reportDialog.dispose());
+        JPanel actions = Ui.transparent(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.add(close);
+
+        JPanel root = Ui.dialogPanel(new BorderLayout(12, 12));
+        root.add(Ui.title("Informe final del combate", 24f), BorderLayout.NORTH);
+        JPanel center = Ui.transparent(new BorderLayout(12, 12));
+        center.add(summary, BorderLayout.NORTH);
+        center.add(Ui.scroll(report), BorderLayout.CENTER);
+        root.add(center, BorderLayout.CENTER);
+        root.add(actions, BorderLayout.SOUTH);
+
+        reportDialog.setContentPane(root);
+        reportDialog.setSize(920, 760);
+        reportDialog.setLocationRelativeTo(owner);
+        reportDialog.setVisible(true);
     }
 
     private static void configureSpeedButton(JButton button, JButton[] group, ArenaReplayPanel replay, int multiplier) {
@@ -128,15 +247,32 @@ final class CombatDialog {
         return panel;
     }
 
+    private static JPanel combatantCard(String label, String nick, Color color, boolean highlighted) {
+        JPanel panel = Ui.card();
+        JPanel head = Ui.transparent(new BorderLayout(0, 6));
+        JLabel eyebrow = Ui.small(label);
+        eyebrow.setForeground(color);
+        JLabel title = Ui.title(nick, 20f);
+        head.add(eyebrow, BorderLayout.NORTH);
+        head.add(title, BorderLayout.CENTER);
+        panel.add(head, BorderLayout.NORTH);
+        panel.add(new CombatPortraitPanel(nick, color, highlighted), BorderLayout.CENTER);
+        panel.add(Visuals.chips(highlighted ? "Dominante" : "Contencion", "Arena"), BorderLayout.SOUTH);
+        return panel;
+    }
+
     private static final class ArenaReplayPanel extends JPanel {
         private final RegistroCombate registro;
+        private final Runnable onFinished;
         private final Timer timer;
         private int speed = 1;
         private int tick;
         private int eventIndex;
+        private boolean finished;
 
-        ArenaReplayPanel(RegistroCombate registro) {
+        ArenaReplayPanel(RegistroCombate registro, Runnable onFinished) {
             this.registro = registro;
+            this.onFinished = onFinished;
             setOpaque(false);
             setPreferredSize(new java.awt.Dimension(940, 340));
             timer = new Timer(700, event -> advance());
@@ -156,13 +292,24 @@ final class CombatDialog {
         private void advance() {
             List<String> events = registro.getEventos();
             if (events.isEmpty() || eventIndex >= events.size() - 1) {
-                timer.stop();
+                finishReplay();
                 repaint();
                 return;
             }
             tick++;
             eventIndex++;
             repaint();
+        }
+
+        private void finishReplay() {
+            if (finished) {
+                return;
+            }
+            finished = true;
+            timer.stop();
+            if (onFinished != null) {
+                onFinished.run();
+            }
         }
 
         @Override
@@ -342,6 +489,64 @@ final class CombatDialog {
 
         private String trim(String text, int max) {
             return text.length() <= max ? text : text.substring(0, max - 3) + "...";
+        }
+    }
+
+    private static final class CombatPortraitPanel extends JPanel {
+        private final String nick;
+        private final Color accent;
+        private final boolean highlighted;
+
+        private CombatPortraitPanel(String nick, Color accent, boolean highlighted) {
+            this.nick = nick;
+            this.accent = accent;
+            this.highlighted = highlighted;
+            setOpaque(false);
+            setPreferredSize(new java.awt.Dimension(260, 150));
+        }
+
+        @Override
+        protected void paintComponent(Graphics graphics) {
+            super.paintComponent(graphics);
+            Graphics2D g = (Graphics2D) graphics.create();
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int w = getWidth();
+            int h = getHeight();
+
+            g.setPaint(new GradientPaint(0, 0, new Color(14, 18, 29), w, h, new Color(22, 29, 46)));
+            g.fillRoundRect(0, 0, w, h, 18, 18);
+            g.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), highlighted ? 165 : 108));
+            g.setStroke(new BasicStroke(highlighted ? 2.0f : 1.2f));
+            g.drawRoundRect(1, 1, w - 3, h - 3, 18, 18);
+
+            g.setColor(new Color(accent.getRed(), accent.getGreen(), accent.getBlue(), 44));
+            g.fillOval(w - 98, 10, 76, 76);
+            g.setColor(new Color(255, 255, 255, 18));
+            for (int i = 0; i < 6; i++) {
+                g.drawLine(w - 24 - i * 22, 0, w, 24 + i * 22);
+            }
+
+            int x = 36;
+            int y = 26;
+            g.setColor(new Color(255, 248, 232));
+            g.fillOval(x, y, 46, 46);
+            g.setPaint(new GradientPaint(x - 6, y + 44, accent.darker(), x + 66, y + 112, accent.brighter()));
+            g.fillRoundRect(x - 8, y + 38, 64, 70, 22, 22);
+            g.setColor(new Color(10, 12, 22));
+            g.fillRoundRect(x + 4, y + 50, 40, 50, 18, 18);
+            g.setColor(accent.darker());
+            g.fillArc(x - 4, y - 6, 56, 24, 0, 180);
+            g.setColor(Ui.TEXT);
+            g.setFont(getFont().deriveFont(Font.BOLD, 16f));
+            g.drawString(nick, 114, 48);
+            g.setColor(Ui.MUTED);
+            g.setFont(getFont().deriveFont(Font.PLAIN, 12f));
+            g.drawString(highlighted ? "Estado dominante en la simulacion" : "Contendiente en presion", 114, 68);
+            g.setColor(accent);
+            g.fillRoundRect(114, 90, 104, 10, 10, 10);
+            g.setColor(new Color(255, 255, 255, 90));
+            g.drawRoundRect(114, 90, 104, 10, 10, 10);
+            g.dispose();
         }
     }
 }

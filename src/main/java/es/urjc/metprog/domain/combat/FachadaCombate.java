@@ -17,6 +17,12 @@ public class FachadaCombate {
             perdedor.registrarDerrota(LocalDateTime.now());
         }
 
+        registro = registro.conResumenEconomico(
+                desafio.getApuesta(),
+                desafiante.getPersonaje().getOro(),
+                desafiado.getPersonaje().getOro()
+        );
+
         // Los recursos y la salud temporal del combate se restauran al cerrar la batalla.
         desafiante.getPersonaje().prepararParaCombate();
         desafiado.getPersonaje().prepararParaCombate();

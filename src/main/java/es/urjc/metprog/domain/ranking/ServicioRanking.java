@@ -37,6 +37,7 @@ public class ServicioRanking {
                     posicion++,
                     jugador.getNick(),
                     jugador.getPersonaje().getNombre(),
+                    jugador.getPersonaje().getTipo(),
                     jugador.getPersonaje().getOro(),
                     victorias.getOrDefault(jugador.getNick(), 0L).intValue(),
                     derrotas.getOrDefault(jugador.getNick(), 0L).intValue()

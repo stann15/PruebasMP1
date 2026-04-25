@@ -20,6 +20,9 @@ public class RegistroCombate implements Serializable {
     private final List<String> esbirrosSupervivientesDesafiado;
     private final int oroGanado;
     private final List<String> eventos;
+    private final int apuesta;
+    private final int oroFinalDesafiante;
+    private final int oroFinalDesafiado;
 
     public RegistroCombate(
             String nickDesafiante,
@@ -32,6 +35,36 @@ public class RegistroCombate implements Serializable {
             int oroGanado,
             List<String> eventos
     ) {
+        this(
+                nickDesafiante,
+                nickDesafiado,
+                rondas,
+                fecha,
+                vencedor,
+                esbirrosSupervivientesDesafiante,
+                esbirrosSupervivientesDesafiado,
+                oroGanado,
+                eventos,
+                0,
+                0,
+                0
+        );
+    }
+
+    public RegistroCombate(
+            String nickDesafiante,
+            String nickDesafiado,
+            int rondas,
+            LocalDateTime fecha,
+            String vencedor,
+            List<String> esbirrosSupervivientesDesafiante,
+            List<String> esbirrosSupervivientesDesafiado,
+            int oroGanado,
+            List<String> eventos,
+            int apuesta,
+            int oroFinalDesafiante,
+            int oroFinalDesafiado
+    ) {
         this.nickDesafiante = nickDesafiante;
         this.nickDesafiado = nickDesafiado;
         this.rondas = rondas;
@@ -41,6 +74,9 @@ public class RegistroCombate implements Serializable {
         this.esbirrosSupervivientesDesafiado = new ArrayList<>(esbirrosSupervivientesDesafiado);
         this.oroGanado = oroGanado;
         this.eventos = new ArrayList<>(eventos);
+        this.apuesta = apuesta;
+        this.oroFinalDesafiante = oroFinalDesafiante;
+        this.oroFinalDesafiado = oroFinalDesafiado;
     }
 
     public String getNickDesafiante() {
@@ -83,6 +119,43 @@ public class RegistroCombate implements Serializable {
         return Collections.unmodifiableList(eventos);
     }
 
+    public int getApuesta() {
+        return apuesta;
+    }
+
+    public int getOroFinalDesafiante() {
+        return oroFinalDesafiante;
+    }
+
+    public int getOroFinalDesafiado() {
+        return oroFinalDesafiado;
+    }
+
+    public int getNumeroEsbirrosSupervivientesDesafiante() {
+        return esbirrosSupervivientesDesafiante.size();
+    }
+
+    public int getNumeroEsbirrosSupervivientesDesafiado() {
+        return esbirrosSupervivientesDesafiado.size();
+    }
+
+    public RegistroCombate conResumenEconomico(int apuesta, int oroFinalDesafiante, int oroFinalDesafiado) {
+        return new RegistroCombate(
+                nickDesafiante,
+                nickDesafiado,
+                rondas,
+                fecha,
+                vencedor,
+                esbirrosSupervivientesDesafiante,
+                esbirrosSupervivientesDesafiado,
+                oroGanado,
+                eventos,
+                apuesta,
+                oroFinalDesafiante,
+                oroFinalDesafiado
+        );
+    }
+
     @Override
     public String toString() {
         return "Combate{" +
@@ -91,6 +164,7 @@ public class RegistroCombate implements Serializable {
                 ", rondas=" + rondas +
                 ", fecha=" + fecha +
                 ", vencedor=" + (vencedor == null ? "EMPATE" : vencedor) +
+                ", apuesta=" + apuesta +
                 ", oroGanado=" + oroGanado +
                 '}';
     }
