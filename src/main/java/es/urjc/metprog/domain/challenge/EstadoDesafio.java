@@ -5,7 +5,7 @@ import es.urjc.metprog.domain.common.DomainException;
 import java.io.Serial;
 import java.io.Serializable;
 
-public interface EstadoDesafio extends Serializable 
+public interface EstadoDesafio extends Serializable{
     String nombre();
 
     default void validar(Desafio desafio) {
