@@ -36,7 +36,7 @@ public class SistemaFacade {
     private final PublicadorNotificaciones publicadorNotificaciones;
     private Usuario usuarioActual;
 
-    public SistemaFacade() {
+    public SistemaFacade() 
         this.baseDeDatos = BaseDeDatos.getInstance();
         this.directorPersonaje = new DirectorPersonaje();
         this.fachadaCombate = new FachadaCombate();
