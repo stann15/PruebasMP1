@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-public class Combate {
+public class Combate 
     private final Desafio desafio;
     private final Jugador desafiante;
     private final Jugador desafiado;
