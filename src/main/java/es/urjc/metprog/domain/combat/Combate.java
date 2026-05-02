@@ -101,7 +101,7 @@ final class ContextoRonda {
 
     ContextoRonda(int numeroRonda, Personaje desafiante, Personaje desafiado, Desafio desafio, List<String> eventos, Random random) {
         this.numeroRonda = numeroRonda;
-        this.desafiante = desafiado;
+        this.desafiante = desafiante;
         this.desafiado = desafiado;
         this.desafio = desafio;
         this.eventos = eventos;
